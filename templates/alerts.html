@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+
+{% block title %}Alerts{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="fas fa-bell"></i> Alerts
+    </h1>
+    <p class="page-subtitle">Monitor and manage safety alerts</p>
+</div>
+
+<!-- Alert Filters -->
+<div class="card">
+    <div class="card-body">
+        <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+            <button class="filter-btn active" onclick="filterAlerts('all')">
+                <i class="fas fa-list"></i> All Alerts
+                <span class="filter-count" id="count-all">0</span>
+            </button>
+            <button class="filter-btn" onclick="filterAlerts('unread')">
+                <i class="fas fa-envelope"></i> Unread
+                <span class="filter-count" id="count-unread">0</span>
+            </button>
+            <button class="filter-btn" onclick="filterAlerts('critical')">
+                <i class="fas fa-exclamation-triangle"></i> Critical
+                <span class="filter-count" id="count-critical">0</span>
+            </button>
+            <button class="filter-btn" onclick="filterAlerts('resolved')">
+                <i class="fas fa-check-circle"></i> Resolved
+                <span class="filter-count" id="count-resolved">0</span>
+            </button>
+            <div style="margin-left: auto;">
+                <button class="btn btn-primary" onclick="checkForAlerts()">
+                    <i class="fas fa-sync-alt"></i> Check Equipment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alerts List -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-bell"></i> <span id="filter-title">All Alerts</span>
+    </div>
+    <div class="card-body">
+        <div id="alerts-container">
+            <div style="text-align: center; padding: 40px;">
+                Loading alerts...
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Role Info Banner -->
+{% if current_user_role == 'Technician' %}
+<div style="background: rgba(6,214,160,0.1); border: 1px solid rgba(6,214,160,0.3); border-radius: 12px; padding: 15px; margin-top: 20px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <i class="fas fa-info-circle" style="color: #06d6a0; font-size: 20px;"></i>
+        <div>
+            <strong style="color: #06d6a0;">Technician Role:</strong>
+            <span style="color: var(--text-secondary); margin-left: 8px;">
+                You can mark alerts as read to inform managers. Only Managers and Admins can resolve alerts.
+            </span>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+    .filter-btn {
+        padding: 10px 20px;
+        border: 2px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.05);
+        border-radius: 10px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+    }
+
+    .filter-btn:hover {
+        border-color: var(--primary);
+        background: rgba(255,107,53,0.1);
+        color: var(--text-primary);
+    }
+
+    .filter-btn.active {
+        border-color: var(--primary);
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+    }
+
+    .filter-count {
+        background: rgba(255,255,255,0.2);
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        min-width: 24px;
+        text-align: center;
+    }
+
+    .alert-item {
+        background: rgba(255,255,255,0.03);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 15px;
+        border-left: 4px solid var(--alert-color);
+        transition: all 0.3s;
+    }
+
+    .alert-item:hover {
+        background: rgba(255,255,255,0.06);
+        transform: translateX(5px);
+    }
+
+    .alert-item.critical { --alert-color: #e63946; }
+    .alert-item.high { --alert-color: #f7931e; }
+    .alert-item.medium { --alert-color: #ffc300; }
+    .alert-item.low { --alert-color: #06d6a0; }
+    .alert-item.resolved { opacity: 0.6; }
+
+    .alert-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 15px;
+    }
+
+    .alert-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+    }
+
+    .severity-badge {
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .severity-badge.critical {
+        background: rgba(230,57,70,0.2);
+        color: #e63946;
+    }
+
+    .severity-badge.high {
+        background: rgba(247,147,30,0.2);
+        color: #f7931e;
+    }
+
+    .severity-badge.medium {
+        background: rgba(255,195,0,0.2);
+        color: #ffc300;
+    }
+
+    .severity-badge.low {
+        background: rgba(6,214,160,0.2);
+        color: #06d6a0;
+    }
+
+    .alert-meta {
+        display: flex;
+        gap: 15px;
+        font-size: 13px;
+        color: var(--text-secondary);
+        margin-bottom: 12px;
+    }
+
+    .alert-message {
+        color: var(--text-primary);
+        line-height: 1.6;
+        margin-bottom: 15px;
+    }
+
+    .alert-equipment {
+        background: rgba(255,255,255,0.05);
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .equipment-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .alert-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-alert {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 13px;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-mark-read {
+        background: rgba(6,214,160,0.2);
+        color: #06d6a0;
+        border: 1px solid rgba(6,214,160,0.3);
+    }
+
+    .btn-mark-read:hover {
+        background: rgba(6,214,160,0.3);
+        transform: scale(1.05);
+    }
+
+    .btn-resolve {
+        background: rgba(255,107,53,0.2);
+        color: var(--primary);
+        border: 1px solid rgba(255,107,53,0.3);
+    }
+
+    .btn-resolve:hover {
+        background: rgba(255,107,53,0.3);
+        transform: scale(1.05);
+    }
+
+    .btn-view-equipment {
+        background: rgba(255,255,255,0.05);
+        color: var(--text-secondary);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .btn-view-equipment:hover {
+        background: rgba(255,255,255,0.1);
+        color: var(--text-primary);
+    }
+
+    .read-badge {
+        background: rgba(6,214,160,0.2);
+        color: #06d6a0;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .resolved-badge {
+        background: rgba(255,107,53,0.2);
+        color: var(--primary);
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-secondary);
+    }
+
+    .empty-state i {
+        font-size: 64px;
+        margin-bottom: 20px;
+        opacity: 0.3;
+    }
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let allAlerts = [];
+    const currentUserRole = '{{ current_user_role }}';
+
+    // Load Alerts
+    async function loadAlerts() {
+        try {
+            const response = await fetch('/api/alerts');
+            allAlerts = await response.json();
+            
+            updateCounts();
+            displayAlerts(allAlerts);
+        } catch (error) {
+            console.error('Error loading alerts:', error);
+            showToast('Error loading alerts', 'error');
+        }
+    }
+
+    // Update Filter Counts
+    function updateCounts() {
+        const unread = allAlerts.filter(a => !a.is_read).length;
+        const critical = allAlerts.filter(a => a.severity === 'Critical').length;
+        const resolved = allAlerts.filter(a => a.is_resolved).length;
+
+        document.getElementById('count-all').textContent = allAlerts.length;
+        document.getElementById('count-unread').textContent = unread;
+        document.getElementById('count-critical').textContent = critical;
+        document.getElementById('count-resolved').textContent = resolved;
+    }
+
+    // Filter Alerts
+    function filterAlerts(filter) {
+        // Update active button
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.closest('.filter-btn').classList.add('active');
+
+        // Filter data
+        let filtered = allAlerts;
+        let title = 'All Alerts';
+
+        if (filter === 'unread') {
+            filtered = allAlerts.filter(a => !a.is_read);
+            title = 'Unread Alerts';
+        } else if (filter === 'critical') {
+            filtered = allAlerts.filter(a => a.severity === 'Critical');
+            title = 'Critical Alerts';
+        } else if (filter === 'resolved') {
+            filtered = allAlerts.filter(a => a.is_resolved);
+            title = 'Resolved Alerts';
+        }
+
+        document.getElementById('filter-title').textContent = title;
+        displayAlerts(filtered);
+    }
+
+    // Display Alerts
+    function displayAlerts(alerts) {
+        const container = document.getElementById('alerts-container');
+
+        if (alerts.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-check-circle"></i>
+                    <h3>No Alerts</h3>
+                    <p>All equipment is being monitored</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = alerts.map(alert => `
+            <div class="alert-item ${alert.severity.toLowerCase()} ${alert.is_resolved ? 'resolved' : ''}">
+                <div class="alert-header">
+                    <div class="alert-title">
+                        <span class="severity-badge ${alert.severity.toLowerCase()}">${alert.severity}</span>
+                        <strong>${alert.alert_type}</strong>
+                        ${alert.is_read ? '<span class="read-badge">✓ Read</span>' : ''}
+                        ${alert.is_resolved ? '<span class="resolved-badge">✓ Resolved</span>' : ''}
+                    </div>
+                </div>
+
+                <div class="alert-meta">
+                    <span><i class="fas fa-clock"></i> ${alert.created_at}</span>
+                    ${alert.read_at ? `<span><i class="fas fa-eye"></i> Read ${alert.read_at}</span>` : ''}
+                    ${alert.resolved_at ? `<span><i class="fas fa-check"></i> Resolved ${alert.resolved_at}</span>` : ''}
+                </div>
+
+                <div class="alert-message">${alert.message}</div>
+
+                <div class="alert-equipment">
+                    <div class="equipment-info">
+                        <i class="fas fa-box" style="color: var(--primary);"></i>
+                        <strong>${alert.equipment_type}</strong>
+                        <span style="color: var(--text-secondary);">|</span>
+                        <span>${alert.location}</span>
+                        ${alert.equipment_id ? `
+                            <span style="color: var(--text-secondary);">|</span>
+                            <span style="color: var(--primary);">📦 ${alert.equipment_id}</span>
+                        ` : ''}
+                    </div>
+                    ${alert.equipment_db_id ? `
+                        <button class="btn-alert btn-view-equipment" onclick="window.location.href='/equipment/${alert.equipment_db_id}'">
+                            <i class="fas fa-eye"></i> View Equipment
+                        </button>
+                    ` : ''}
+                </div>
+
+                <div class="alert-actions">
+                    ${!alert.is_read ? `
+                        <button class="btn-alert btn-mark-read" onclick="markAsRead(${alert.id})">
+                            <i class="fas fa-check"></i> Mark as Read
+                        </button>
+                    ` : ''}
+                    
+                    ${!alert.is_resolved && (currentUserRole === 'Admin' || currentUserRole === 'Manager') ? `
+                        <button class="btn-alert btn-resolve" onclick="resolveAlert(${alert.id})">
+                            <i class="fas fa-check-circle"></i> Resolve Alert
+                        </button>
+                    ` : ''}
+                    
+                    ${!alert.is_resolved && currentUserRole === 'Technician' ? `
+                        <span style="color: var(--text-secondary); font-size: 12px; padding: 8px 16px;">
+                            <i class="fas fa-info-circle"></i> Contact manager to resolve
+                        </span>
+                    ` : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Mark Alert as Read
+    async function markAsRead(alertId) {
+        try {
+            const response = await fetch(`/api/alerts/${alertId}/mark-read`, {
+                method: 'POST'
+            });
+
+            if (response.ok) {
+                showToast('Alert marked as read', 'success');
+                loadAlerts();
+            } else {
+                showToast('Failed to mark alert as read', 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Error marking alert as read', 'error');
+        }
+    }
+
+    // Resolve Alert (Manager/Admin only)
+    async function resolveAlert(alertId) {
+        if (!confirm('Are you sure you want to resolve this alert?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/alerts/${alertId}/resolve`, {
+                method: 'POST'
+            });
+
+            if (response.ok) {
+                showToast('Alert resolved successfully', 'success');
+                loadAlerts();
+            } else {
+                const data = await response.json();
+                showToast(data.error || 'Failed to resolve alert', 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Error resolving alert', 'error');
+        }
+    }
+
+    // Check for New Alerts
+    async function checkForAlerts() {
+        try {
+            const response = await fetch('/api/check-alerts');
+            const data = await response.json();
+            
+            showToast(`Found ${data.new_alerts} new alert(s)`, 'success');
+            loadAlerts();
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Error checking for alerts', 'error');
+        }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', loadAlerts);
+</script>
+{% endblock %}

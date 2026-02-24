@@ -1,0 +1,424 @@
+{% extends "base.html" %}
+
+{% block title %}Equipment Details{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="fas fa-box"></i> Equipment Details
+    </h1>
+    <div style="display: flex; gap: 10px; margin-top: 15px;">
+        <button class="btn btn-secondary" onclick="window.location.href='/equipment-list'">
+            <i class="fas fa-arrow-left"></i> Back to List
+        </button>
+        <!-- Add Maintenance Button - All roles can add maintenance -->
+        <button class="btn btn-primary" onclick="window.location.href='/add-maintenance/{{ equipment_id }}'">
+            <i class="fas fa-wrench"></i> Add Maintenance
+        </button>
+    </div>
+</div>
+
+<!-- Equipment Information -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-info-circle"></i> Equipment Information
+        <span id="equipmentIdDisplay" style="margin-left: 15px; color: var(--primary); font-weight: 700;"></span>
+    </div>
+    <div class="card-body" id="equipmentInfo">
+        <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+            Loading equipment details...
+        </div>
+    </div>
+</div>
+
+<!-- Maintenance History -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-history"></i> Maintenance History
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="maintenance-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Technician</th>
+                        <th>Company</th>
+                        <th>Cost (LKR)</th>
+                        <th>Status</th>
+                        {% if current_user_role == 'Admin' %}
+                        <th>Actions</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody id="maintenanceHistory">
+                    <tr>
+                        <td colspan="{{ '7' if current_user_role == 'Admin' else '6' }}" style="text-align: center; padding: 40px;">
+                            Loading maintenance history...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Risk Assessment -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-exclamation-triangle"></i> Risk Assessment
+    </div>
+    <div class="card-body">
+        <div id="riskAssessment" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+            Click "Run Prediction" to assess risk level
+        </div>
+        <div style="margin-top: 20px; text-align: center;">
+            <button class="btn btn-primary" onclick="runPrediction()">
+                <i class="fas fa-brain"></i> Run Risk Prediction
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .btn-secondary {
+        background: rgba(255,255,255,0.1);
+        color: var(--text-primary);
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .btn-secondary:hover {
+        background: rgba(255,255,255,0.15);
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 25px;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .info-label {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-secondary);
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .info-label i {
+        color: var(--primary);
+    }
+
+    .info-value {
+        font-size: 16px;
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    .risk-card {
+        background: linear-gradient(135deg, rgba(255,107,53,0.1), rgba(247,147,30,0.1));
+        border: 2px solid rgba(255,107,53,0.3);
+        border-radius: 16px;
+        padding: 30px;
+        text-align: center;
+    }
+
+    .risk-score {
+        font-size: 64px;
+        font-weight: 800;
+        margin: 20px 0;
+    }
+
+    .risk-score.high { color: #e63946; }
+    .risk-score.medium { color: #f7931e; }
+    .risk-score.low { color: #06d6a0; }
+
+    .risk-label {
+        font-size: 24px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    .maintenance-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .maintenance-table thead {
+        background: rgba(255,255,255,0.05);
+    }
+
+    .maintenance-table th {
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-secondary);
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        text-transform: uppercase;
+        font-size: 12px;
+    }
+
+    .maintenance-table td {
+        padding: 15px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .maintenance-table tbody tr:hover {
+        background: rgba(255,255,255,0.03);
+    }
+
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .status-badge.completed {
+        background: rgba(6,214,160,0.2);
+        color: #06d6a0;
+    }
+
+    .action-btn {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 12px;
+        transition: all 0.3s;
+        margin-right: 5px;
+    }
+
+    .btn-edit {
+        background: rgba(247,147,30,0.2);
+        color: #f7931e;
+    }
+
+    .btn-delete {
+        background: rgba(230,57,70,0.2);
+        color: #e63946;
+    }
+
+    .btn-edit:hover,
+    .btn-delete:hover {
+        transform: scale(1.1);
+    }
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const equipmentId = {{ equipment_id }};
+    const userRole = '{{ current_user_role }}';
+    let equipmentData = null;
+
+    // Load equipment details
+    async function loadEquipmentDetails() {
+        try {
+            const response = await fetch(`/api/equipment/${equipmentId}`);
+            equipmentData = await response.json();
+            displayEquipmentInfo(equipmentData);
+            document.getElementById('equipmentIdDisplay').textContent = equipmentData.equipment_id;
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Error loading equipment details', 'error');
+        }
+    }
+
+    // Display equipment info
+    function displayEquipmentInfo(data) {
+        const container = document.getElementById('equipmentInfo');
+        container.innerHTML = `
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-tag"></i> Equipment Type</div>
+                    <div class="info-value">${data.equipment_type}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-barcode"></i> Serial Number</div>
+                    <div class="info-value">${data.serial_number || 'N/A'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-industry"></i> Manufacturer</div>
+                    <div class="info-value">${data.manufacturer || 'N/A'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-cube"></i> Model</div>
+                    <div class="info-value">${data.model || 'N/A'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-calendar"></i> Installation Year</div>
+                    <div class="info-value">${data.install_year} (Age: ${data.age} years)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-wrench"></i> Last Service</div>
+                    <div class="info-value">${data.last_service_date} (${data.days_since_service} days ago)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-calendar-check"></i> Next Service</div>
+                    <div class="info-value">${data.next_service_date}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-clock"></i> Service Interval</div>
+                    <div class="info-value">${data.service_interval_months} months</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-map-marker-alt"></i> Location</div>
+                    <div class="info-value">${data.location}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-building"></i> Floor</div>
+                    <div class="info-value">${data.floor}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-check-circle"></i> Condition</div>
+                    <div class="info-value">${data.condition}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-history"></i> Maintenance Count</div>
+                    <div class="info-value">${data.maintenance_count} records</div>
+                </div>
+            </div>
+            ${data.notes ? `
+                <div style="margin-top: 25px; padding-top: 25px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <div class="info-label"><i class="fas fa-sticky-note"></i> Notes</div>
+                    <div style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">${data.notes}</div>
+                </div>
+            ` : ''}
+        `;
+    }
+
+    // Load maintenance history
+    async function loadMaintenanceHistory() {
+        try {
+            const response = await fetch(`/api/equipment/${equipmentId}/history`);
+            const history = await response.json();
+            displayMaintenanceHistory(history);
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Error loading maintenance history', 'error');
+        }
+    }
+
+    // Display maintenance history
+    function displayMaintenanceHistory(history) {
+        const tbody = document.getElementById('maintenanceHistory');
+        
+        if (history.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="${userRole === 'Admin' ? '7' : '6'}" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                        No maintenance records found
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = history.map(record => `
+            <tr>
+                <td>${record.maintenance_date}</td>
+                <td>${record.maintenance_type}</td>
+                <td>${record.technician_name || 'N/A'}</td>
+                <td>${record.technician_company || 'N/A'}</td>
+                <td>LKR ${(record.cost_lkr || 0).toLocaleString()}</td>
+                <td><span class="status-badge completed">${record.status}</span></td>
+                ${userRole === 'Admin' ? `
+                    <td>
+                        <button class="action-btn btn-edit" onclick="editMaintenance(${record.id})">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="action-btn btn-delete" onclick="deleteMaintenance(${record.id})">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </td>
+                ` : ''}
+            </tr>
+        `).join('');
+    }
+
+    // Run prediction
+    async function runPrediction() {
+        try {
+            const response = await fetch('/api/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ equipment_id: equipmentId })
+            });
+
+            const data = await response.json();
+            
+            if (response.ok) {
+                showToast('Risk prediction completed!', 'success');
+                displayRiskAssessment(data);
+            } else {
+                showToast('Failed to run prediction', 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Error running prediction', 'error');
+        }
+    }
+
+    // Display risk assessment
+    function displayRiskAssessment(data) {
+        const container = document.getElementById('riskAssessment');
+        const riskClass = data.risk_level.toLowerCase();
+        
+        container.innerHTML = `
+            <div class="risk-card">
+                <div class="risk-label" style="color: ${
+                    riskClass === 'high' ? '#e63946' : 
+                    riskClass === 'medium' ? '#f7931e' : '#06d6a0'
+                }">${data.risk_level.toUpperCase()} RISK</div>
+                <div class="risk-score ${riskClass}">${data.risk_score}%</div>
+                <div style="color: var(--text-secondary); margin-top: 15px;">${data.summary}</div>
+            </div>
+        `;
+    }
+
+    // Edit maintenance (Admin only)
+    function editMaintenance(id) {
+        showToast('Edit maintenance feature - Admin only', 'info');
+    }
+
+    // Delete maintenance (Admin only)
+    async function deleteMaintenance(id) {
+        if (!confirm('Are you sure you want to delete this maintenance record?')) return;
+        
+        try {
+            const response = await fetch(`/api/maintenance/${id}`, { method: 'DELETE' });
+            if (response.ok) {
+                showToast('Maintenance record deleted', 'success');
+                loadMaintenanceHistory();
+            }
+        } catch (error) {
+            showToast('Error deleting record', 'error');
+        }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        loadEquipmentDetails();
+        loadMaintenanceHistory();
+    });
+</script>
+{% endblock %}

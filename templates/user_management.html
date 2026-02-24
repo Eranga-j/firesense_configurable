@@ -1,0 +1,573 @@
+{% extends "base.html" %}
+
+{% block title %}User Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="fas fa-users"></i> User Management
+    </h1>
+    <p class="page-subtitle">Manage system users and roles</p>
+</div>
+
+<!-- Users List Card -->
+<div class="card">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <i class="fas fa-list"></i> All Users
+            <span id="userCount" style="color: var(--text-secondary); margin-left: 10px;">(0 users)</span>
+        </div>
+        {% if current_user_role == 'Admin' %}
+        <button class="btn btn-primary" onclick="showAddUserForm()">
+            <i class="fas fa-user-plus"></i> Add User
+        </button>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Role</th>
+                        <th>Date Joined</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 40px;">
+                            Loading users...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit User Modal -->
+<div id="userModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">Add New User</h2>
+            <button class="close-btn" onclick="closeUserModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form id="userForm" onsubmit="saveUser(event)">
+                <input type="hidden" id="userId" value="">
+                
+                <div class="form-group">
+                    <label for="username">Username *</label>
+                    <input type="text" id="username" required placeholder="Enter username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password *</label>
+                    <input type="password" id="password" placeholder="Enter password">
+                    <small id="passwordHelp" style="display: none; color: var(--text-secondary);">
+                        Leave empty to keep current password
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email *</label>
+                    <input type="email" id="email" required placeholder="user@example.com">
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone">Phone</label>
+                    <input type="tel" id="phone" placeholder="+94 77 123 4567">
+                </div>
+                
+                <div class="form-group">
+                    <label for="role">Role *</label>
+                    <select id="role" required>
+                        <option value="">Select Role</option>
+                        <option value="Admin">Admin - Full Access</option>
+                        <option value="Manager">Manager - Add Equipment, Resolve Alerts</option>
+                        <option value="Technician">Technician - View Only, Mark Alerts</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="status">Status</label>
+                    <select id="status">
+                        <option value="ACTIVE">Active</option>
+                        <option value="INACTIVE">Inactive</option>
+                    </select>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn" onclick="closeUserModal()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save User
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Role Info Banner -->
+{% if current_user_role == 'Manager' %}
+<div style="background: rgba(247,147,30,0.1); border: 1px solid rgba(247,147,30,0.3); border-radius: 12px; padding: 15px; margin-top: 20px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <i class="fas fa-info-circle" style="color: #f7931e; font-size: 20px;"></i>
+        <div>
+            <strong style="color: #f7931e;">Manager View:</strong>
+            <span style="color: var(--text-secondary); margin-left: 8px;">
+                You can view users but cannot add, edit, or delete them. Only Admins have full user management access.
+            </span>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    .users-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 800px;
+    }
+
+    .users-table thead {
+        background: rgba(255,255,255,0.05);
+    }
+
+    .users-table th {
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-secondary);
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+    }
+
+    .users-table td {
+        padding: 15px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .users-table tbody tr {
+        transition: background 0.3s;
+    }
+
+    .users-table tbody tr:hover {
+        background: rgba(255,255,255,0.03);
+    }
+
+    .role-badge {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-block;
+    }
+
+    .role-badge.admin {
+        background: rgba(230,57,70,0.2);
+        color: #e63946;
+    }
+
+    .role-badge.manager {
+        background: rgba(247,147,30,0.2);
+        color: #f7931e;
+    }
+
+    .role-badge.technician {
+        background: rgba(6,214,160,0.2);
+        color: #06d6a0;
+    }
+
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .status-badge.active {
+        background: rgba(6,214,160,0.2);
+        color: #06d6a0;
+    }
+
+    .status-badge.inactive {
+        background: rgba(150,150,150,0.2);
+        color: #999;
+    }
+
+    .action-btn {
+        padding: 8px 12px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s;
+        margin-right: 5px;
+    }
+
+    .btn-edit {
+        background: rgba(247,147,30,0.2);
+        color: #f7931e;
+    }
+
+    .btn-edit:hover {
+        background: rgba(247,147,30,0.3);
+        transform: scale(1.05);
+    }
+
+    .btn-delete {
+        background: rgba(230,57,70,0.2);
+        color: #e63946;
+    }
+
+    .btn-delete:hover {
+        background: rgba(230,57,70,0.3);
+        transform: scale(1.05);
+    }
+
+    .btn-disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
+        backdrop-filter: blur(5px);
+    }
+
+    .modal.active {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-content {
+        background: var(--card-bg);
+        border-radius: 16px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .modal-header {
+        padding: 25px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 24px;
+        color: var(--text-primary);
+    }
+
+    .close-btn {
+        background: rgba(255,255,255,0.1);
+        border: none;
+        width: 35px;
+        height: 35px;
+        border-radius: 8px;
+        cursor: pointer;
+        color: var(--text-primary);
+        transition: all 0.3s;
+    }
+
+    .close-btn:hover {
+        background: rgba(230,57,70,0.2);
+        color: #e63946;
+    }
+
+    .modal-body {
+        padding: 25px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 14px;
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 12px 15px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.05);
+        color: var(--text-primary);
+        font-size: 14px;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: var(--primary);
+        background: rgba(255,255,255,0.08);
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 25px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-secondary);
+    }
+
+    .empty-state i {
+        font-size: 64px;
+        margin-bottom: 20px;
+        opacity: 0.3;
+    }
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const currentUserRole = '{{ current_user_role }}';
+    let users = [];
+    let editingUserId = null;
+
+    // Load users
+    async function loadUsers() {
+        try {
+            const response = await fetch('/api/users');
+            users = await response.json();
+            displayUsers();
+            updateUserCount();
+        } catch (error) {
+            console.error('Error loading users:', error);
+            showToast('Error loading users', 'error');
+        }
+    }
+
+    // Display users
+    function displayUsers() {
+        const tbody = document.getElementById('usersTableBody');
+        
+        if (users.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <h3>No Users Found</h3>
+                        <p>Add your first user to get started</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tbody.innerHTML = users.map(user => `
+            <tr>
+                <td style="font-weight: 600;">
+                    <i class="fas fa-user" style="margin-right: 8px; color: var(--primary);"></i>
+                    ${user.username}
+                </td>
+                <td style="color: var(--text-secondary);">${user.email}</td>
+                <td style="color: var(--text-secondary);">${user.phone || '-'}</td>
+                <td>
+                    <span class="role-badge ${user.role.toLowerCase()}">${user.role}</span>
+                </td>
+                <td style="color: var(--text-secondary);">${user.date_joined}</td>
+                <td>
+                    <span class="status-badge ${user.status.toLowerCase()}">${user.status}</span>
+                </td>
+                <td>
+                    ${currentUserRole === 'Admin' ? `
+                        <button class="action-btn btn-edit" onclick="editUser(${user.id})" title="Edit User">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="action-btn btn-delete" onclick="deleteUser(${user.id}, '${user.username}')" title="Delete User">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    ` : `
+                        <span style="color: var(--text-secondary); font-size: 12px;">View Only</span>
+                    `}
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // Update user count
+    function updateUserCount() {
+        document.getElementById('userCount').textContent = `(${users.length} user${users.length !== 1 ? 's' : ''})`;
+    }
+
+    // Show add user form
+    function showAddUserForm() {
+        if (currentUserRole !== 'Admin') {
+            showToast('Only Admins can add users', 'error');
+            return;
+        }
+        
+        editingUserId = null;
+        document.getElementById('modalTitle').textContent = 'Add New User';
+        document.getElementById('userForm').reset();
+        document.getElementById('userId').value = '';
+        document.getElementById('password').required = true;
+        document.getElementById('passwordHelp').style.display = 'none';
+        document.getElementById('userModal').classList.add('active');
+    }
+
+    // Edit user
+    function editUser(userId) {
+        if (currentUserRole !== 'Admin') {
+            showToast('Only Admins can edit users', 'error');
+            return;
+        }
+        
+        const user = users.find(u => u.id === userId);
+        if (!user) return;
+        
+        editingUserId = userId;
+        document.getElementById('modalTitle').textContent = 'Edit User';
+        document.getElementById('userId').value = user.id;
+        document.getElementById('username').value = user.username;
+        document.getElementById('email').value = user.email;
+        document.getElementById('phone').value = user.phone || '';
+        document.getElementById('role').value = user.role;
+        document.getElementById('status').value = user.status;
+        document.getElementById('password').value = '';
+        document.getElementById('password').required = false;
+        document.getElementById('passwordHelp').style.display = 'block';
+        document.getElementById('userModal').classList.add('active');
+    }
+
+    // Delete user
+    async function deleteUser(userId, username) {
+        if (currentUserRole !== 'Admin') {
+            showToast('Only Admins can delete users', 'error');
+            return;
+        }
+        
+        if (!confirm(`Are you sure you want to delete user "${username}"?`)) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/users/${userId}`, {
+                method: 'DELETE'
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                showToast('User deleted successfully', 'success');
+                loadUsers();
+            } else {
+                showToast(data.error || 'Failed to delete user', 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Error deleting user', 'error');
+        }
+    }
+
+    // Save user
+    async function saveUser(event) {
+        event.preventDefault();
+        
+        if (currentUserRole !== 'Admin') {
+            showToast('Only Admins can save users', 'error');
+            return;
+        }
+        
+        const userId = document.getElementById('userId').value;
+        const userData = {
+            username: document.getElementById('username').value,
+            email: document.getElementById('email').value,
+            phone: document.getElementById('phone').value,
+            role: document.getElementById('role').value,
+            status: document.getElementById('status').value,
+            password: document.getElementById('password').value
+        };
+        
+        try {
+            const url = userId ? `/api/users/${userId}` : '/api/users';
+            const method = userId ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(userData)
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                showToast(userId ? 'User updated successfully' : 'User created successfully', 'success');
+                closeUserModal();
+                loadUsers();
+            } else {
+                showToast(data.error || 'Failed to save user', 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Error saving user', 'error');
+        }
+    }
+
+    // Close modal
+    function closeUserModal() {
+        document.getElementById('userModal').classList.remove('active');
+        document.getElementById('userForm').reset();
+        editingUserId = null;
+    }
+
+    // Close modal on outside click
+    window.onclick = function(event) {
+        const modal = document.getElementById('userModal');
+        if (event.target === modal) {
+            closeUserModal();
+        }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', loadUsers);
+</script>
+{% endblock %}

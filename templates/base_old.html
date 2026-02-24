@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FireSense{% endblock %} - {{ hotel.hotel_name }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #ff6b35;
+            --secondary: #f7931e;
+            --dark-bg: #1a1a2e;
+            --card-bg: #16213e;
+            --text-primary: #eee;
+            --text-secondary: #9a9a9a;
+            --success: #06d6a0;
+            --warning: #ffc300;
+            --danger: #e63946;
+            --border: #2d3561;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--dark-bg);
+            color: var(--text-primary);
+        }
+
+        /* Navigation */
+        .navbar {
+            background: var(--card-bg);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .navbar-brand i {
+            font-size: 28px;
+        }
+
+        .hotel-name {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-left: 10px;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 5px;
+            list-style: none;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .nav-link:hover {
+            background: rgba(255,107,53,0.1);
+            color: var(--primary);
+        }
+
+        .nav-link.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-role {
+            background: rgba(255,107,53,0.2);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .user-role.admin {
+            background: rgba(230,57,70,0.2);
+            color: #e63946;
+        }
+
+        .user-role.manager {
+            background: rgba(247,147,30,0.2);
+            color: #f7931e;
+        }
+
+        .user-role.technician {
+            background: rgba(6,214,160,0.2);
+            color: #06d6a0;
+        }
+
+        .btn-logout {
+            background: var(--danger);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+
+        .btn-logout:hover {
+            background: #d62828;
+            transform: translateY(-2px);
+        }
+
+        /* Main Content */
+        .container {
+            padding: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Page Headers */
+        .page-header {
+            margin-bottom: 30px;
+        }
+
+        .page-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-bottom: 25px;
+        }
+
+        .card-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-body {
+            padding: 25px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255,107,53,0.4);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <a href="/dashboard" class="navbar-brand">
+            <i class="fas fa-fire"></i>
+            <span>FireSense</span>
+            <span class="hotel-name">{{ hotel.hotel_name }}</span>
+        </a>
+
+        <ul class="nav-menu">
+            <!-- Dashboard - All Roles -->
+            <li>
+                <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' %}active{% endif %}">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+            </li>
+
+            <!-- Equipment - All Roles -->
+            <li>
+                <a href="/equipment-list" class="nav-link {% if request.path.startswith('/equipment') %}active{% endif %}">
+                    <i class="fas fa-boxes"></i> Equipment
+                </a>
+            </li>
+
+            <!-- Alerts - All Roles -->
+            <li>
+                <a href="/alerts" class="nav-link {% if request.path == '/alerts' %}active{% endif %}">
+                    <i class="fas fa-bell"></i> Alerts
+                </a>
+            </li>
+
+            <!-- Reports - All Roles -->
+            <li>
+                <a href="/reports" class="nav-link {% if request.path == '/reports' %}active{% endif %}">
+                    <i class="fas fa-file-alt"></i> Reports
+                </a>
+            </li>
+
+            <!-- Prediction History - All Roles -->
+            <li>
+                <a href="/prediction-history" class="nav-link {% if request.path == '/prediction-history' %}active{% endif %}">
+                    <i class="fas fa-brain"></i> Predictions
+                </a>
+            </li>
+
+            <!-- Users - Admin and Manager Only -->
+            {% if current_user_role in ['Admin', 'Manager'] %}
+            <li>
+                <a href="/user-management" class="nav-link {% if request.path == '/user-management' %}active{% endif %}">
+                    <i class="fas fa-users"></i> Users
+                </a>
+            </li>
+            {% endif %}
+
+            <!-- Settings - Admin Only -->
+            {% if current_user_role == 'Admin' %}
+            <li>
+                <a href="/settings" class="nav-link {% if request.path == '/settings' %}active{% endif %}">
+                    <i class="fas fa-cog"></i> Settings
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+
+        <div class="nav-right">
+            <div class="user-info">
+                <i class="fas fa-user-circle" style="font-size: 20px;"></i>
+                <span>{{ session.get('username', 'User') }}</span>
+                <span class="user-role {{ current_user_role|lower if current_user_role else '' }}">
+                    {{ current_user_role or 'User' }}
+                </span>
+            </div>
+            <a href="/logout" class="btn-logout">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999;"></div>
+
+    <script>
+        // Toast Notification System
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const bgColor = type === 'success' ? '#06d6a0' : 
+                           type === 'error' ? '#e63946' : 
+                           type === 'warning' ? '#ffc300' : '#3498db';
+            
+            toast.style.cssText = `
+                background: ${bgColor};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                margin-bottom: 10px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                animation: slideIn 0.3s ease;
+                min-width: 300px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-weight: 600;
+            `;
+            
+            const icon = type === 'success' ? '✓' : 
+                        type === 'error' ? '✕' : 
+                        type === 'warning' ? '⚠' : 'ℹ';
+            
+            toast.innerHTML = `<span style="font-size: 18px;">${icon}</span> ${message}`;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Add animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(400px); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(400px); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

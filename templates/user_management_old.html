@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}User Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="fas fa-users"></i> User Management
+    </h1>
+    <p class="page-subtitle">Manage system users and roles</p>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-list"></i> All Users
+        <div style="margin-left: auto;">
+            <button class="btn btn-primary" onclick="showAddUserModal()">
+                <i class="fas fa-user-plus"></i> Add User
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-container">
+            <table id="usersTable">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Role</th>
+                        <th>Date Joined</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 40px;">
+                            Loading users...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal-overlay" id="userModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">Add New User</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="userForm">
+                <div class="form-group">
+                    <label class="form-label">Username *</label>
+                    <input type="text" id="username" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password *</label>
+                    <input type="password" id="password" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email *</label>
+                    <input type="email" id="email" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Phone</label>
+                    <input type="tel" id="phone" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Role *</label>
+                    <select id="role" class="form-control" required>
+                        <option value="">Select Role</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Technician">Technician</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveUser()">Save User</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadUsers() {
+        try {
+            const response = await fetch('/api/users');
+            const users = await response.json();
+            displayUsers(users);
+        } catch (error) {
+            console.error('Error loading users:', error);
+        }
+    }
+
+    function displayUsers(users) {
+        const tbody = document.querySelector('#usersTable tbody');
+        
+        tbody.innerHTML = users.map(user => `
+            <tr>
+                <td><strong>${user.username}</strong></td>
+                <td>${user.email}</td>
+                <td>${user.phone || 'N/A'}</td>
+                <td>
+                    <span class="badge badge-${
+                        user.role === 'Admin' ? 'danger' :
+                        user.role === 'Manager' ? 'warning' : 'info'
+                    }">${user.role}</span>
+                </td>
+                <td>${user.date_joined}</td>
+                <td>
+                    <span class="badge badge-${user.status === 'ACTIVE' ? 'success' : 'secondary'}">
+                        ${user.status}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" 
+                            onclick="deleteUser(${user.id}, '${user.username}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function showAddUserModal() {
+        document.getElementById('userModal').classList.add('show');
+        document.getElementById('userForm').reset();
+    }
+
+    function closeModal() {
+        document.getElementById('userModal').classList.remove('show');
+    }
+
+    async function saveUser() {
+        const formData = {
+            username: document.getElementById('username').value,
+            password: document.getElementById('password').value,
+            email: document.getElementById('email').value,
+            phone: document.getElementById('phone').value,
+            role: document.getElementById('role').value
+        };
+        
+        try {
+            const response = await fetch('/api/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            if (response.ok) {
+                showToast('User created successfully!', 'success');
+                closeModal();
+                loadUsers();
+            } else {
+                const data = await response.json();
+                showToast(data.error || 'Failed to create user', 'error');
+            }
+        } catch (error) {
+            showToast('Error: ' + error.message, 'error');
+        }
+    }
+
+    async function deleteUser(userId, username) {
+        if (!confirm(`Are you sure you want to delete user "${username}"?`)) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/users/${userId}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                showToast('User deleted successfully', 'success');
+                loadUsers();
+            } else {
+                showToast('Failed to delete user', 'error');
+            }
+        } catch (error) {
+            showToast('Error: ' + error.message, 'error');
+        }
+    }
+
+    loadUsers();
+</script>
+{% endblock %}

@@ -1,0 +1,546 @@
+{% extends 'base.html' %}
+
+{% block title %}Team Chat{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chat-container {
+        display: flex;
+        height: calc(100vh - 180px);
+        background: var(--card-bg);  /* Dark blue background */
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        border: 1px solid var(--border);
+    }
+
+    /* Sidebar - Room List */
+    .chat-sidebar {
+        width: 300px;
+        background: var(--card-bg);  /* Dark blue */
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chat-sidebar-header {
+        padding: 20px;
+        background: #16213E;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .chat-sidebar-header h3 {
+        margin: 0;
+        font-size: 18px;
+    }
+
+    .new-chat-btn {
+        background: #FF6B35;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 20px;
+        line-height: 1;
+    }
+
+    .new-chat-btn:hover {
+        background: #e55a2b;
+    }
+
+    .chat-rooms-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px;
+    }
+
+    .chat-room-item {
+        padding: 15px;
+        margin-bottom: 8px;
+        background: rgba(255,255,255,0.05);  /* Slightly lighter than bg */
+        border-radius: 8px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.2s;
+    }
+
+    .chat-room-item:hover {
+        border-color: #FF6B35;
+        background: rgba(255,107,53,0.1);
+        transform: translateX(4px);
+    }
+
+    .chat-room-item.active {
+        border-color: #FF6B35;
+        background: rgba(255,107,53,0.15);
+    }
+
+    .room-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .room-name {
+        font-weight: 600;
+        color: var(--text-primary);  /* Light text */
+    }
+
+    .room-badge {
+        background: #E63946;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .room-last-message {
+        color: var(--text-secondary);  /* Gray text */
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .room-time {
+        color: var(--text-secondary);
+        font-size: 12px;
+        margin-top: 4px;
+    }
+
+    /* Delete Room Button */
+    .delete-room-btn {
+        background: var(--danger);
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 600;
+        opacity: 0;
+        transition: all 0.2s;
+        margin-left: 8px;
+    }
+
+    .chat-room-item:hover .delete-room-btn {
+        opacity: 1;
+    }
+
+    .delete-room-btn:hover {
+        background: #c62828;
+        transform: scale(1.05);
+    }
+
+    /* Main Chat Area */
+    .chat-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: var(--card-bg);  /* Dark blue */
+    }
+
+    .chat-header {
+        padding: 20px;
+        background: #16213E;
+        color: white;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .chat-header h3 {
+        margin: 0;
+        font-size: 20px;
+    }
+
+    .chat-room-type {
+        font-size: 14px;
+        color: #FF6B35;
+        margin-top: 4px;
+    }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        background: var(--dark-bg);  /* Darker background for chat area */
+    }
+
+    .message {
+        margin-bottom: 20px;
+        display: flex;
+        gap: 12px;
+    }
+
+    .message.mine {
+        flex-direction: row-reverse;
+    }
+
+    .message-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #16213E;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+
+    .message.mine .message-avatar {
+        background: #FF6B35;
+    }
+
+    .message-content {
+        flex: 1;
+        max-width: 70%;
+    }
+
+    .message-header {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 4px;
+    }
+
+    .message.mine .message-header {
+        flex-direction: row-reverse;
+    }
+
+    .message-username {
+        font-weight: 600;
+        color: var(--text-primary);  /* Light color for dark background */
+        font-size: 14px;
+    }
+
+    .message-time {
+        color: var(--text-secondary);  /* Gray for timestamp */
+        font-size: 12px;
+    }
+
+    .message-bubble {
+        padding: 12px 16px;
+        border-radius: 12px;
+        background: white;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        word-wrap: break-word;
+        color: #1a1a2e;
+    }
+
+    .message.mine .message-bubble {
+        background: #FF6B35;
+        color: white;
+    }
+
+    .message-attachment {
+        margin-top: 8px;
+        padding: 8px 12px;
+        background: rgba(0,0,0,0.05);
+        border-radius: 6px;
+        font-size: 14px;
+    }
+
+    .message-attachment a {
+        color: #16213E;
+        text-decoration: none;
+    }
+
+    .message.mine .message-attachment a {
+        color: white;
+    }
+
+    /* Chat Input */
+    .chat-input-container {
+        padding: 20px;
+        background: var(--card-bg);  /* Dark blue */
+        border-top: 1px solid var(--border);
+    }
+
+    .chat-input-form {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .chat-input {
+        flex: 1;
+        padding: 12px 16px;
+        border: 2px solid var(--border);
+        border-radius: 24px;
+        font-size: 14px;
+        outline: none;
+        transition: all 0.3s;
+        color: var(--text-primary);  /* Light text */
+        background: rgba(255,255,255,0.05);  /* Slightly lighter */
+    }
+
+    .chat-input::placeholder {
+        color: var(--text-secondary);
+        opacity: 0.7;
+    }
+
+    .chat-input:focus {
+        border-color: #FF6B35;
+        background: rgba(255,255,255,0.08);
+        box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.2);
+    }
+
+    .chat-send-btn {
+        background: #FF6B35;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 24px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background 0.2s;
+    }
+
+    .chat-send-btn:hover {
+        background: #e55a2b;
+    }
+
+    .chat-send-btn:disabled {
+        background: #666;
+        cursor: not-allowed;
+    }
+
+    /* Empty State */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: var(--text-secondary);
+        padding: 40px;
+        text-align: center;
+    }
+
+    .empty-state-icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+        opacity: 0.3;
+    }
+
+    .empty-state h3 {
+        margin-bottom: 10px;
+        color: var(--text-primary);
+    }
+
+    /* Modal */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal.active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: var(--card-bg);  /* Dark blue */
+        padding: 30px;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 500px;
+        border: 1px solid var(--border);
+    }
+
+    .modal-header {
+        margin-bottom: 20px;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        color: var(--text-primary);  /* Light text */
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 10px;
+        border: 2px solid var(--border);
+        border-radius: 6px;
+        font-size: 14px;
+        background: rgba(255,255,255,0.05);  /* Dark input */
+        color: var(--text-primary);
+        transition: all 0.3s;
+    }
+
+    .form-group input::placeholder {
+        color: var(--text-secondary);
+        opacity: 0.7;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: #FF6B35;
+        background: rgba(255,255,255,0.08);
+        box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.2);
+    }
+
+    /* Select options */
+    .form-group select option {
+        background: var(--card-bg);
+        color: var(--text-primary);
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    .btn-primary {
+        background: #FF6B35;
+        color: white;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .chat-sidebar {
+            width: 100%;
+            position: absolute;
+            height: 100%;
+            z-index: 10;
+            transform: translateX(-100%);
+            transition: transform 0.3s;
+        }
+
+        .chat-sidebar.mobile-open {
+            transform: translateX(0);
+        }
+
+        .message-content {
+            max-width: 85%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">💬 Team Chat</h1>
+    <p class="page-subtitle">Communicate with your team about fire safety and equipment maintenance</p>
+</div>
+
+<div class="chat-container">
+    <!-- Sidebar - Chat Rooms -->
+    <div class="chat-sidebar">
+        <div class="chat-sidebar-header">
+            <h3>Chat Rooms</h3>
+            <button class="new-chat-btn" id="createRoomBtn" onclick="openNewRoomModal()" style="display: none;">+</button>
+        </div>
+        
+        <div class="chat-rooms-list" id="roomsList">
+            <!-- Rooms will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Main Chat Area -->
+    <div class="chat-main">
+        <div id="emptyState" class="empty-state">
+            <div class="empty-state-icon">💬</div>
+            <h3>Select a Chat Room</h3>
+            <p>Choose a room from the sidebar to start chatting</p>
+        </div>
+
+        <div id="chatArea" style="display: none; flex-direction: column; height: 100%;">
+            <div class="chat-header">
+                <h3 id="currentRoomName">Room Name</h3>
+                <div class="chat-room-type" id="currentRoomType">General Chat</div>
+            </div>
+
+            <div class="chat-messages" id="messagesList">
+                <!-- Messages will be loaded here -->
+            </div>
+
+            <div class="chat-input-container">
+                <form class="chat-input-form" onsubmit="sendMessage(event)">
+                    <input 
+                        type="text" 
+                        class="chat-input" 
+                        id="messageInput"
+                        placeholder="Type your message..."
+                        required
+                    >
+                    <button type="submit" class="chat-send-btn">Send</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Room Modal -->
+<div class="modal" id="newRoomModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Create New Chat Room</h3>
+        </div>
+        <form onsubmit="createNewRoom(event)">
+            <div class="form-group">
+                <label>Room Name</label>
+                <input type="text" id="newRoomName" required>
+            </div>
+            <div class="form-group">
+                <label>Room Type</label>
+                <select id="newRoomType">
+                    <option value="general">General Discussion</option>
+                    <option value="maintenance">Maintenance</option>
+                    <option value="urgent">Urgent Issues</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeNewRoomModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Room</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+{% endblock %}

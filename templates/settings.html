@@ -1,0 +1,438 @@
+{% extends "base.html" %}
+
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="fas fa-cog"></i> Hotel Settings
+    </h1>
+    <p class="page-subtitle">Configure your hotel information - changes apply system-wide instantly</p>
+</div>
+
+<!-- Hotel Information Card -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-hotel"></i> Hotel Information
+    </div>
+    <div class="card-body">
+        <form id="settingsForm" onsubmit="saveSettings(event)">
+            <div class="form-grid">
+                <!-- Left Column -->
+                <div class="form-column">
+                    <div class="form-group">
+                        <label for="hotelName">
+                            <i class="fas fa-building"></i> Hotel Name *
+                        </label>
+                        <input type="text" id="hotelName" required placeholder="Enter hotel name">
+                        <small>This name appears throughout the system</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="starRating">
+                            <i class="fas fa-star"></i> Star Rating
+                        </label>
+                        <select id="starRating">
+                            <option value="3">3 Star</option>
+                            <option value="4">4 Star</option>
+                            <option value="5">5 Star</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="city">
+                                <i class="fas fa-map-marker-alt"></i> City *
+                            </label>
+                            <input type="text" id="city" required placeholder="e.g., Colombo">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="province">
+                                <i class="fas fa-map"></i> Province *
+                            </label>
+                            <select id="province" required>
+                                <option value="">Select Province</option>
+                                <option value="Western">Western</option>
+                                <option value="Central">Central</option>
+                                <option value="Southern">Southern</option>
+                                <option value="Northern">Northern</option>
+                                <option value="Eastern">Eastern</option>
+                                <option value="North Western">North Western</option>
+                                <option value="North Central">North Central</option>
+                                <option value="Uva">Uva</option>
+                                <option value="Sabaragamuwa">Sabaragamuwa</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="address">
+                            <i class="fas fa-location-arrow"></i> Address
+                        </label>
+                        <textarea id="address" rows="3" placeholder="Full address with street, city, postal code"></textarea>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="form-column">
+                    <div class="form-group">
+                        <label for="phone">
+                            <i class="fas fa-phone"></i> Phone Number
+                        </label>
+                        <input type="tel" id="phone" placeholder="+94 XX XXX XXXX">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">
+                            <i class="fas fa-envelope"></i> Email
+                        </label>
+                        <input type="email" id="email" placeholder="info@hotel.lk">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="website">
+                            <i class="fas fa-globe"></i> Website
+                        </label>
+                        <input type="url" id="website" placeholder="www.yourhotel.lk">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="hotelType">
+                                <i class="fas fa-tag"></i> Hotel Type
+                            </label>
+                            <select id="hotelType">
+                                <option value="City Hotel">City Hotel</option>
+                                <option value="Beach Resort">Beach Resort</option>
+                                <option value="Hill Country">Hill Country</option>
+                                <option value="Business Hotel">Business Hotel</option>
+                                <option value="Boutique Hotel">Boutique Hotel</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="totalRooms">
+                                <i class="fas fa-bed"></i> Total Rooms
+                            </label>
+                            <input type="number" id="totalRooms" min="1" placeholder="100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Last Updated Info -->
+            <div class="info-box">
+                <i class="fas fa-info-circle"></i>
+                <div>
+                    <strong>Last Updated:</strong> 
+                    <span id="lastUpdated">Loading...</span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="loadSettings()">
+                    <i class="fas fa-undo"></i> Reset Changes
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Important Information Card -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-exclamation-triangle"></i> Important Information
+    </div>
+    <div class="card-body">
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-icon" style="background: rgba(255,107,53,0.2);">
+                    <i class="fas fa-sync-alt" style="color: #ff6b35;"></i>
+                </div>
+                <div class="info-content">
+                    <h4>Real-Time Updates</h4>
+                    <p>Changes to hotel settings are applied immediately across the entire system.</p>
+                </div>
+            </div>
+
+            <div class="info-item">
+                <div class="info-icon" style="background: rgba(247,147,30,0.2);">
+                    <i class="fas fa-shield-alt" style="color: #f7931e;"></i>
+                </div>
+                <div class="info-content">
+                    <h4>Admin Only</h4>
+                    <p>Only administrators can modify these settings. Managers and Technicians have view-only access.</p>
+                </div>
+            </div>
+
+            <div class="info-item">
+                <div class="info-icon" style="background: rgba(6,214,160,0.2);">
+                    <i class="fas fa-database" style="color: #06d6a0;"></i>
+                </div>
+                <div class="info-content">
+                    <h4>Database Backup</h4>
+                    <p>All changes are logged. You can revert to previous settings if needed.</p>
+                </div>
+            </div>
+
+            <div class="info-item">
+                <div class="info-icon" style="background: rgba(108,117,125,0.2);">
+                    <i class="fas fa-file-export" style="color: #6c757d;"></i>
+                </div>
+                <div class="info-content">
+                    <h4>Export Settings</h4>
+                    <p>Your hotel information appears in all exported reports and CSV files.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+        margin-bottom: 30px;
+    }
+
+    @media (max-width: 992px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+    }
+
+    .form-column {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+
+    @media (max-width: 576px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-group label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 14px;
+    }
+
+    .form-group label i {
+        color: var(--primary);
+        width: 16px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        padding: 12px 15px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.05);
+        color: var(--text-primary);
+        font-size: 14px;
+        transition: all 0.3s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        background: rgba(255,255,255,0.08);
+        box-shadow: 0 0 0 3px rgba(255,107,53,0.1);
+    }
+
+    .form-group textarea {
+        resize: vertical;
+        font-family: inherit;
+    }
+
+    .form-group small {
+        margin-top: 5px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        font-style: italic;
+    }
+
+    .info-box {
+        background: rgba(247,147,30,0.1);
+        border: 1px solid rgba(247,147,30,0.3);
+        border-radius: 12px;
+        padding: 15px 20px;
+        margin-bottom: 25px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .info-box i {
+        color: #f7931e;
+        font-size: 20px;
+    }
+
+    .info-box strong {
+        color: var(--text-primary);
+    }
+
+    .info-box span {
+        color: var(--text-secondary);
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 15px;
+        justify-content: flex-end;
+    }
+
+    .btn-secondary {
+        background: rgba(255,255,255,0.1);
+        color: var(--text-primary);
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .btn-secondary:hover {
+        background: rgba(255,255,255,0.15);
+        transform: translateY(-2px);
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+    }
+
+    .info-item {
+        display: flex;
+        gap: 15px;
+        align-items: flex-start;
+    }
+
+    .info-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+    .info-content h4 {
+        margin: 0 0 5px 0;
+        font-size: 15px;
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    .info-content p {
+        margin: 0;
+        font-size: 13px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load hotel settings
+    async function loadSettings() {
+        try {
+            const response = await fetch('/api/hotel-info');
+            const hotel = await response.json();
+            
+            document.getElementById('hotelName').value = hotel.hotel_name || '';
+            document.getElementById('starRating').value = hotel.star_rating || '5';
+            document.getElementById('city').value = hotel.city || '';
+            document.getElementById('province').value = hotel.province || '';
+            document.getElementById('address').value = hotel.address || '';
+            document.getElementById('phone').value = hotel.phone || '';
+            document.getElementById('email').value = hotel.email || '';
+            document.getElementById('website').value = hotel.website || '';
+            document.getElementById('hotelType').value = hotel.hotel_type || 'City Hotel';
+            document.getElementById('totalRooms').value = hotel.total_rooms || '';
+            
+            const updatedDate = hotel.updated_at || 'Never';
+            document.getElementById('lastUpdated').textContent = updatedDate;
+        } catch (error) {
+            console.error('Error loading settings:', error);
+            showToast('Error loading settings', 'error');
+        }
+    }
+
+    // Save settings
+    async function saveSettings(event) {
+        event.preventDefault();
+        
+        const settingsData = {
+            hotel_name: document.getElementById('hotelName').value,
+            star_rating: document.getElementById('starRating').value,
+            city: document.getElementById('city').value,
+            province: document.getElementById('province').value,
+            address: document.getElementById('address').value,
+            phone: document.getElementById('phone').value,
+            email: document.getElementById('email').value,
+            website: document.getElementById('website').value,
+            hotel_type: document.getElementById('hotelType').value,
+            total_rooms: document.getElementById('totalRooms').value
+        };
+        
+        try {
+            const response = await fetch('/api/hotel-settings', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(settingsData)
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                showToast('Settings saved successfully! Changes are now active system-wide.', 'success');
+                loadSettings(); // Reload to show updated date
+                
+                // Update navbar hotel name if changed
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showToast(data.error || 'Failed to save settings', 'error');
+            }
+        } catch (error) {
+            console.error('Error saving settings:', error);
+            showToast('Error saving settings', 'error');
+        }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', loadSettings);
+</script>
+{% endblock %}
