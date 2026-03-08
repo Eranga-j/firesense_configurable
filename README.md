@@ -351,9 +351,6 @@ This project is created for academic purposes as part of the Cardiff Metropolita
 - Institution: Cardiff Metropolitan University (via ICBT Campus)
 - Programme: BSc (Hons) Software Engineering
 - Module: CSE6035 - Development Project
-- Academic Year: 2024-2025
-- Semester: 3
-
 
 ## 🙏 Acknowledgments
 
