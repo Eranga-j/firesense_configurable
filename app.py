@@ -574,10 +574,63 @@ def create_equipment():
     try:
         last_eq = Equipment.query.order_by(Equipment.id.desc()).first()
         new_id = f"FE{str(int(last_eq.equipment_id[2:]) + 1).zfill(6)}" if last_eq and last_eq.equipment_id else "FE000001"
+        
+        # FIXED: Extract install_year from install_date
         install_date = datetime.strptime(data['install_date'], '%Y-%m-%d').date() if data.get('install_date') else None
+        install_year = install_date.year if install_date else datetime.now().year
+        
         last_service = datetime.strptime(data['last_service_date'], '%Y-%m-%d').date()
+        
+        # VALIDATION: Last service date cannot be before installation date
+        if install_date and last_service < install_date:
+            return jsonify({
+                'success': False, 
+                'error': f'Last service date ({last_service.strftime("%Y-%m-%d")}) cannot be before installation date ({install_date.strftime("%Y-%m-%d")})'
+            }), 400
+        
+        # VALIDATION: Dates cannot be in the future
+        today = datetime.now().date()
+        if install_date and install_date > today:
+            return jsonify({
+                'success': False,
+                'error': f'Installation date cannot be in the future'
+            }), 400
+        
+        if last_service > today:
+            return jsonify({
+                'success': False,
+                'error': f'Last service date cannot be in the future'
+            }), 400
+        
         next_service = last_service + timedelta(days=int(data.get('service_interval_months', 6)) * 30)
-        new_equipment = Equipment(equipment_id=new_id, equipment_type=data['equipment_type'], serial_number=data.get('serial_number'), manufacturer=data.get('manufacturer'), model=data.get('model'), install_year=int(data['install_year']), install_date=install_date, last_service_date=last_service, next_service_date=next_service, service_interval_months=int(data.get('service_interval_months', 6)), location=data.get('location'), floor=data.get('floor'), zone=data.get('zone'), near_emergency_exit=data.get('near_emergency_exit', False), condition=data.get('condition', 'Good'), usage_level=data.get('usage_level', 'Medium'), daily_exposure_hours=int(data['daily_exposure_hours']) if data.get('daily_exposure_hours') else None, humidity_level=data.get('humidity_level'), temperature_avg=int(data['temperature_avg']) if data.get('temperature_avg') else None, coastal_exposure=data.get('coastal_exposure', False), certification_status=data.get('certification_status', 'Valid'), last_audit_score=int(data['last_audit_score']) if data.get('last_audit_score') else None, notes=data.get('notes'), created_by=session.get('user_id'))
+        
+        new_equipment = Equipment(
+            equipment_id=new_id, 
+            equipment_type=data['equipment_type'], 
+            serial_number=data.get('serial_number'), 
+            manufacturer=data.get('manufacturer'), 
+            model=data.get('model'), 
+            install_year=install_year,  # FIXED: Now extracted from install_date
+            install_date=install_date, 
+            last_service_date=last_service, 
+            next_service_date=next_service, 
+            service_interval_months=int(data.get('service_interval_months', 6)), 
+            location=data.get('location'), 
+            floor=data.get('floor'), 
+            zone=data.get('zone'), 
+            near_emergency_exit=data.get('near_emergency_exit', False), 
+            condition=data.get('condition', 'Good'), 
+            usage_level=data.get('usage_level', 'Medium'), 
+            daily_exposure_hours=int(data['daily_exposure_hours']) if data.get('daily_exposure_hours') else None, 
+            humidity_level=data.get('humidity_level'), 
+            temperature_avg=int(data['temperature_avg']) if data.get('temperature_avg') else None, 
+            coastal_exposure=data.get('coastal_exposure', False), 
+            certification_status=data.get('certification_status', 'Valid'), 
+            last_audit_score=int(data['last_audit_score']) if data.get('last_audit_score') else None, 
+            notes=data.get('notes'), 
+            created_by=session.get('user_id')
+        )
+        
         db.session.add(new_equipment)
         db.session.commit()
         return jsonify({'success': True, 'message': 'Equipment registered successfully', 'equipment_id': new_equipment.id, 'equipment_code': new_id})

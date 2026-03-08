@@ -60,21 +60,12 @@
                 </div>
 
                 <!-- Right Column -->
-                <div class="form-column">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="installYear">
-                                <i class="fas fa-calendar"></i> Install Year *
-                            </label>
-                            <input type="number" id="installYear" required min="1990" max="2030" placeholder="e.g., 2024">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="installDate">
-                                <i class="fas fa-calendar-check"></i> Install Date
-                            </label>
-                            <input type="date" id="installDate">
-                        </div>
+                 <div class="form-group">
+                        <label for="installDate">
+                            <i class="fas fa-calendar-check"></i> Install Date *
+                        </label>
+                        <input type="date" id="installDate" required>
+                        <small>Date when equipment was installed</small>
                     </div>
 
                     <div class="form-row">
@@ -455,7 +446,7 @@
             serial_number: document.getElementById('serialNumber').value,
             manufacturer: document.getElementById('manufacturer').value,
             model: document.getElementById('model').value,
-            install_year: document.getElementById('installYear').value,
+            install_date: document.getElementById('installDate').value,
             install_date: document.getElementById('installDate').value,
             last_service_date: document.getElementById('lastServiceDate').value,
             service_interval_months: document.getElementById('serviceInterval').value,
@@ -505,6 +496,8 @@
             document.getElementById('equipmentForm').reset();
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('lastServiceDate').value = today;
+            document.getElementById('installDate').setAttribute('max', today);
+            document.getElementById('lastServiceDate').setAttribute('max', today);
             showToast('Form reset successfully', 'info');
         }
     }
